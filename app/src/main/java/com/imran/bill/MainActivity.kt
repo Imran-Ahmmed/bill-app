@@ -24,9 +24,31 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+    // হিসাব হয়ে গেলে true; অ্যাপ স্ক্রিন থেকে চলে গেলে ফর্ম নতুন করে দেওয়া হবে
+    private var hasResult = false
+    private var resetSignal by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { Surface { BillScreen() } } }
+        setContent {
+            MaterialTheme {
+                Surface {
+                    BillScreen(
+                        resetSignal = resetSignal,
+                        onCalculated = { hasResult = true }
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // স্ক্রিন রোটেট করলে রিসেট হবে না, শুধু অ্যাপ বন্ধ/ব্যাকগ্রাউন্ডে গেলে
+        if (hasResult && !isChangingConfigurations) {
+            hasResult = false
+            resetSignal++
+        }
     }
 }
 
@@ -43,7 +65,7 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, number: Bool
 }
 
 @Composable
-fun BillScreen() {
+fun BillScreen(resetSignal: Int = 0, onCalculated: () -> Unit = {}) {
     val ctx = LocalContext.current
     val today = remember { SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date()) }
 
@@ -59,6 +81,18 @@ fun BillScreen() {
     var mahimPast by rememberSaveable { mutableStateOf("") }
     var mahimPaid by rememberSaveable { mutableStateOf("") }
     var bmp by remember { mutableStateOf<Bitmap?>(null) }
+
+    // হিসাবের পর অ্যাপ বন্ধ করে আবার খুললে নতুন খালি ফর্ম
+    LaunchedEffect(resetSignal) {
+        if (resetSignal > 0) {
+            presentDate = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date())
+            pastDate = ""; recharge = ""; cutting = ""
+            presentTk = ""; pastTk = ""
+            aiyanPresent = ""; aiyanPast = ""
+            mahimPresent = ""; mahimPast = ""; mahimPaid = ""
+            bmp = null
+        }
+    }
 
     fun toast(s: String) = Toast.makeText(ctx, s, Toast.LENGTH_LONG).show()
 
@@ -102,6 +136,7 @@ fun BillScreen() {
                     ap, apast, mp, mpast, mahimPaid.toIntOrNull()
                 )
                 bmp = BillRenderer.render(calculate(input))
+                onCalculated()
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("হিসাব করো") }
