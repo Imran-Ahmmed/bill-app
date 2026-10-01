@@ -94,7 +94,20 @@ object BillRenderer {
         i.mahimPaid?.let { paid ->
             val mb = (r.mahimBill + r.cuttingHalf).roundToInt()
             p.next(100f)
-            p.text("আইয়ান পাবেঃ $mb-$paid = ${mb - paid} টাকা ।", color = Color.RED, size = 48f)
+            when {
+                mb > paid -> p.text(
+                    "আইয়ান পাবেঃ $mb-$paid = ${mb - paid} টাকা ।",
+                    color = Color.RED, size = 48f
+                )
+                paid > mb -> p.text(
+                    "পাশের ঘর পাবেঃ $paid-$mb = ${paid - mb} টাকা ।",
+                    color = Color.RED, size = 48f
+                )
+                else -> p.text(
+                    "কেউ কিছু পাবে না ($mb = $paid) ।",
+                    color = Color.RED, size = 48f
+                )
+            }
         }
 
         val endY = (p.y + 60f).toInt().coerceAtMost(bmp.height)
